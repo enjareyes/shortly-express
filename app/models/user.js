@@ -27,14 +27,12 @@ var User = db.Model.extend({
     // })
   },
   
-  authenticate: function(password, cb) { 
-    var hash = bcrypt.hashSync(password, salt);
+  authenticate: function(password) { 
+    // bcrypt.compare(password, this.get('password'), function(err, same) {
+    //   cb(same)
+    // });
 
-    bcrypt.compare(password, this.get('password'), function(err, same) {
-      cb(same)
-    });
-
-    //bcrypt.compareSync(password,hash);
+    return bcrypt.compareSync(password,this.get('password'));
   }
 
 });

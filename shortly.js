@@ -3,8 +3,6 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var session = require('express-session');
-// var cookieParser = require('cookie-parser');
-
 var db = require('./app/config');
 var Users = require('./app/collections/users');
 var User = require('./app/models/user');
@@ -22,8 +20,10 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// app.use(express.cookieParser());
-// app.use(express.session({ secret: 'demkittiesdoe'}));
+app.use(session({
+  secret: 'demkittiesdoe', 
+  resave: false, 
+  saveUninitialized: true }));
 
 
 app.use(express.static(__dirname + '/public'));
@@ -31,11 +31,7 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/', 
 function(req, res) {
-  // req.session.name = 'Hi. this is a session';
-  // console.log(req.session.name);
-  res.render('login');
-// need to check if already signed in
-// check for active cookie in user browser
+  res.render('index');
 });
 
 app.get('/create', 
@@ -45,7 +41,7 @@ function(req, res) {
 
 app.get('/links', function(req, res){
 util.restrict(req, res, 
-  function(req, res) {
+  function() {
     Links.reset().fetch().then(function(links) {
       res.send(200, links.models);
     });
@@ -54,6 +50,10 @@ util.restrict(req, res,
 
 app.get('/signup', function(req, res){
   res.render('signup')
+})
+
+app.get('/login', function(req, res){
+  res.render('login')
 })
 
 app.post('/signup', function(req, res){
@@ -80,52 +80,58 @@ app.post('/signup', function(req, res){
 
 app.post('/links', 
 function(req, res) {
-  restrict(req, res); //
-  var uri = req.body.url;
+  util.restrict(req, res, function(){
+    console.log('successful link access')
 
-  if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
-    return res.send(404);
-  }
+    var uri = req.body.url;
 
-  new Link({ url: uri }).fetch().then(function(found) {
-    if (found) {
-      res.send(200, found.attributes);
-    } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.send(404);
-        }
-
-        var link = new Link({
-          url: uri,
-          title: title,
-          base_url: req.headers.origin
-        });
-
-        link.save().then(function(newLink) {
-          Links.add(newLink);
-          res.send(200, newLink);
-        });
-      });
+    if (!util.isValidUrl(uri)) {
+      console.log('Not a valid url: ', uri);
+      return res.send(404);
     }
-  });
+
+    new Link({ url: uri }).fetch().then(function(found) {
+      if (found) {
+        res.send(200, found.attributes);
+      } else {
+        util.getUrlTitle(uri, function(err, title) {
+          if (err) {
+            console.log('Error reading URL heading: ', err);
+            return res.send(404);
+          }
+
+          var link = new Link({
+            url: uri,
+            title: title,
+            base_url: req.headers.origin
+          });
+
+          link.save().then(function(newLink) {
+            Links.add(newLink);
+            res.send(200, newLink);
+          });
+        });
+      }
+    });
+  }); //
 });
 
 app.post('/login', function(req, res){
-  // console.log(req.body);
-  var uname = req.body.usernamed
+  var uname = req.body.username;
   var pw = req.body.password;
 
   new User({ username: uname }).fetch().then(function(user) {
     if (user) {
-      user.authenticate(pw, function(same){
-        if (!same) res.redirect('/login');
-        //create new session
-      })
+      if (!user.authenticate(pw)) {
+        console.log('bad login');
+        res.redirect('/login')}
+      else {
+        console.log('login successful')
+        req.session.sessionId = user.get('id') 
+        res.redirect('/')
+      }
     } else {
-        res.redirect('/login')
+      res.redirect('/login')
     }
   });
 })
@@ -134,17 +140,6 @@ app.post('/login', function(req, res){
 // Write your authentication routes here
 /************************************************************/
 
-//Some code for handling unauthorized posts and gets:
-
-//If it's unauthorized
-  //redirect
-//else 
-  //create new user
-
-//on login 
-  //give cookie
-//on logout
-  //delete cookie from database
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
