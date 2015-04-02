@@ -134,6 +134,13 @@ app.post('/login', function(req, res){
       res.redirect('/login')
     }
   });
+});
+
+app.get('/logout', function(req, res){
+  console.log('O(log n) out');
+  req.session.destroy(function(err){
+    res.redirect('/login')
+  })
 })
 
 /************************************************************/
