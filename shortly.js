@@ -2,7 +2,8 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var session = require('express-session');
+var cookieParser = require('cookie-parser');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -20,12 +21,23 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// app.use(express.cookieParser());
+// app.use(express.session({ resave: true, 
+//   saveUnitialized: true, 
+//   secret: 'demkittiesdoe'}));
+
+
 app.use(express.static(__dirname + '/public'));
 
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  // req.session.name = 'Hi. this is a session';
+  // console.log(req.session.name);
+  res.render('login');
+// need to check if already signed in
+// check for active cookie in user browser
 });
 
 app.get('/create', 
@@ -33,15 +45,44 @@ function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
-function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
-  });
+app.get('/links', function(req, res){
+util.restrict(req, res, 
+  function(req, res) {
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
+  })
 });
+
+app.get('/signup', function(req, res){
+  res.render('signup')
+})
+
+app.post('/signup', function(req, res){
+  console.log(req.body);
+  var uname = req.body.username;
+  var pw = req.body.password;
+
+  new User({ username: uname }).fetch().then(function(found) {
+    if (found) {
+      res.send(200, found.attributes); 
+    } else {
+      var user = new User({
+        username: uname,
+        password: pw
+      });
+
+      user.save().then(function(newUser) {
+        Users.add(newUser); 
+        res.redirect('/links')
+      });
+    }
+  });
+})
 
 app.post('/links', 
 function(req, res) {
+  restrict(req, res); //
   var uri = req.body.url;
 
   if (!util.isValidUrl(uri)) {
@@ -74,11 +115,37 @@ function(req, res) {
   });
 });
 
+app.post('/login', function(req, res){
+  console.log(req.body);
+  var uname = req.body.username;
+  var pw = req.body.password;
+
+  new User({ username: uname }).fetch().then(function(found) {
+    if (found) {
+      //create new session
+      req.session.name = 'hey';
+      console.log(req.session.name);
+    } else {
+        res.redirect('/login')
+    }
+  });
+})
+
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
 
+//Some code for handling unauthorized posts and gets:
 
+//If it's unauthorized
+  //redirect
+//else 
+  //create new user
+
+//on login 
+  //give cookie
+//on logout
+  //delete cookie from database
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
