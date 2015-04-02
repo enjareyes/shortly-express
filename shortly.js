@@ -29,7 +29,7 @@ app.use(session({
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/', 
+app.get('/',util.restrict, 
 function(req, res) {
   res.render('index');
 });
@@ -54,7 +54,7 @@ app.get('/signup', function(req, res){
 
 app.get('/login', function(req, res){
   res.render('login')
-})
+}) 
 
 app.post('/signup', function(req, res){
   console.log(req.body);
