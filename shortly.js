@@ -3,7 +3,7 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var session = require('express-session');
-var cookieParser = require('cookie-parser');
+// var cookieParser = require('cookie-parser');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -23,9 +23,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // app.use(express.cookieParser());
-// app.use(express.session({ resave: true, 
-//   saveUnitialized: true, 
-//   secret: 'demkittiesdoe'}));
+// app.use(express.session({ secret: 'demkittiesdoe'}));
 
 
 app.use(express.static(__dirname + '/public'));
@@ -116,15 +114,16 @@ function(req, res) {
 });
 
 app.post('/login', function(req, res){
-  console.log(req.body);
-  var uname = req.body.username;
+  // console.log(req.body);
+  var uname = req.body.usernamed
   var pw = req.body.password;
 
-  new User({ username: uname }).fetch().then(function(found) {
-    if (found) {
-      //create new session
-      req.session.name = 'hey';
-      console.log(req.session.name);
+  new User({ username: uname }).fetch().then(function(user) {
+    if (user) {
+      user.authenticate(pw, function(same){
+        if (!same) res.redirect('/login');
+        //create new session
+      })
     } else {
         res.redirect('/login')
     }

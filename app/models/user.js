@@ -17,25 +17,24 @@ var User = db.Model.extend({
       var salt = bcrypt.genSaltSync(10);
       var hash = bcrypt.hashSync(password, salt); 
       var password = model.set('password', hash); 
-    }),
-
-    this.on('fetching', function(model, attrs, options){
-      console.log(model)
-      //run password through bcrypt + check if db contains bcrypt output
-      this.authenticate() //access password and hash to pass in as params
     })
+
+    // this.on('fetching', function(model, attrs, options){
+    //   console.log("model", model)
+    //   // model.attributes.username
+    //   //run password through bcrypt + check if db contains bcrypt output
+    //   this.authenticate() //access password and hash to pass in as params
+    // })
   },
   
-  authenticate: function() { 
-    var result = false;
-    bcrypt.compare(password, hash, function(err, res) {
-      result = true
+  authenticate: function(password, cb) { 
+    var hash = bcrypt.hashSync(password, salt);
+
+    bcrypt.compare(password, this.get('password'), function(err, same) {
+      cb(same)
     });
 
-    // Load hash from your password DB.
-    if (result) { 
-      //
-    }
+    //bcrypt.compareSync(password,hash);
   }
 
 });
